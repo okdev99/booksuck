@@ -8,8 +8,9 @@ from tqdm import tqdm
 from os import mkdir, system
 import re
 import cloudscraper
+import tkinter
 
-version = "1.6"
+version = "1.6 GUI"
 
 #These tags are removed from the text, but the text inside of them is saved.
 removed_tags = ["<em>", "</em>", "<strong>", "</strong>", "<hr>", "</hr>", "<span>", "</span>", "<table>", "</table>", "<caption>", "</caption>", "<tbody>", "</tbody>", "<td>", "</td>", "<tr>", "</tr>"]
