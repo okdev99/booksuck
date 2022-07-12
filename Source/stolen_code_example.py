@@ -68,12 +68,17 @@ def insert():
         address_field.get() == ""):
              
         print("empty input")
+
+        #Implement here error correction from main file
+        #try using them in functions
  
     else:
         print()
         #To get input from entry field use: entry_field.get()
- 
- 
+        #look for inputting this data to main code and exit this
+        #GUI loop and start a new GUI loop for progress and
+        #current chapter preview
+        
 # Driver code
 
 if __name__!= "__main__":
