@@ -6,9 +6,9 @@
 from urllib.request import HTTPError
 from tqdm import tqdm
 from os import mkdir, system
-import re
-import cloudscraper
-import tkinter
+from re import search
+from cloudscraper import create_scraper
+#import tkinter
 
 version = "1.6 GUI"
 
@@ -150,7 +150,7 @@ else:
         else:
             start_chapter_number = start_chapter_number[:-1]
 
-scraper = cloudscraper.create_scraper()
+scraper = create_scraper()
 
 #Make folder generating optional
 if generate_folder in ["y", "yes"]:
@@ -281,7 +281,7 @@ while True:
         system("pause")
         exit()
     
-    end_reached = re.search(("([^0-9]" + ending_chapter_number + "[^0-9])"), (url + "-"))
+    end_reached = search(("([^0-9]" + ending_chapter_number + "[^0-9])"), (url + "-"))
 
     if end_reached:
         break
