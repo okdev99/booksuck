@@ -247,7 +247,7 @@ while True:
         if content_p_start_location == -1:
             break
         
-        book_line = page_content[(content_p_start_location + len("<p>")):content_p_end_location]
+        book_line = page_content[(content_p_start_location + len("<p>")):content_p_end_location].strip("\n\t")
 
         for l in list(range(len(removed_tags))):
             book_line = book_line.replace(removed_tags[l], "")
