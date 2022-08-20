@@ -208,8 +208,9 @@ while True:
         previous_chapter = chapter_number
         progressbar.update(1)
 
+    #Scrape the text from site
     try:
-        page_content = scraper.get(url).text
+        page_content = scraper.get(url).content #Switch .text to .content
     except HTTPError as e:
         progressbar.close()
         print("\nTrying to reach the website returned an error!")
