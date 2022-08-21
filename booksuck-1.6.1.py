@@ -253,8 +253,12 @@ while True:
         for l in list(range(len(removed_tags))):
             book_line = book_line.replace(removed_tags[l], "")
 
-
-        if (forbidden_tags not in book_line) and book_line != "":
+        tag_found = False
+        for tag in forbidden_tags:
+            if tag in book_line:
+                tag_found = True
+        
+        if not tag_found and book_line != "":
             book_txt = book_txt + book_line + "\n\n"
         
         content_start_search = content_p_start_location + 1
