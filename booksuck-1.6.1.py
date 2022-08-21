@@ -12,15 +12,12 @@ from cloudscraper import create_scraper
 version = "1.6.1"
 
 #These tags are removed from the text, but the text inside of them is saved.
-removed_tags = ["<em>", "</em>", "<strong>", "</strong>", "<hr>", "</hr>", "<span>", "</span>", "<table>", "</table>", "<caption>", "</caption>", "<tbody>", "</tbody>", "<td>", "</td>", "<tr>", "</tr>"]
+removed_tags = ["<em>", "</em>", "<strong>", "</strong>", "<hr>", "</hr>", "<span>", "</span>", "<table>", "</table>", "<caption>", "</caption>", "<tbody>", "</tbody>", "<td>", "</td>", "<tr>", "</tr>", "<i>", "</i>"]
+
+forbidden_tags = ["<sub>", "</sub>", "<a href=\""]
 
 #If filename is based on title, these characters are removed from the filename.
 forbidden_chars = ["#", "%", "&", "{", "}", "/", "\\", "<", ">", "€", "$", "!", "?", "+", "@", "\"", "'", "´", "`", "*", ":", ";"]
-
-#These characters are replaced in text
-replaced_from_characters = ["&#34;", "&#39;", "&rsquo;", "&nbsp;", "&ldquo;", "&hellip;", "rdquo;"]
-replaced_to_characters = ["\"", "'", "'", "", "\"", "...", "\""]
-
 
 #This is a list of website where this program is known to work.
 working_websites = ["www.lightnovelpub.com", "www.readlightnovel.me"]
@@ -218,6 +215,9 @@ while True:
         print("Error: ", e)
         system("pause")
         exit()
+
+    page_content = page_content.decode("utf-8")
+
     #content start search was here
     book_txt = ""
     title_name = ""
@@ -252,11 +252,9 @@ while True:
 
         for l in list(range(len(removed_tags))):
             book_line = book_line.replace(removed_tags[l], "")
-        
-        for character in list(range(len(replaced_from_characters))):
-            book_line = book_line.replace(replaced_from_characters[character], replaced_to_characters[character])
 
-        if (("<sub>" and "</sub>" and "<a href=\"") not in book_line) and book_line != "":
+
+        if (forbidden_tags not in book_line) and book_line != "":
             book_txt = book_txt + book_line + "\n\n"
         
         content_start_search = content_p_start_location + 1
