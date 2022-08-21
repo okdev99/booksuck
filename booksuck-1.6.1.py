@@ -281,7 +281,7 @@ while True:
         print()
     else:
         try:
-            with open(folder_path + file_name, "w") as txt_file:
+            with open(folder_path + file_name, "w", "utf-8") as txt_file:
                 txt_file.write(book_txt)
         except OSError as e:
             progressbar.close()
