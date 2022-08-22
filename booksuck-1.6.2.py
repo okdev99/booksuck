@@ -4,12 +4,13 @@
 #Copyright notice is at the end.
 
 from urllib.request import HTTPError
+from html import unescape
 from tqdm import tqdm
 from os import mkdir, system
 from re import search
 from cloudscraper import create_scraper
 
-version = "1.6.1"
+version = "1.6.2"
 
 #These tags are removed from the text, but the text inside of them is saved.
 removed_tags = ["<em>", "</em>", "<strong>", "</strong>", "<hr>", "</hr>", "<span>", "</span>", "<table>", "</table>", "<caption>", "</caption>", "<tbody>", "</tbody>", "<td>", "</td>", "<tr>", "</tr>", "<i>", "</i>"]
@@ -207,7 +208,7 @@ while True:
 
     #Scrape the text from site
     try:
-        page_content = scraper.get(url).content #Switch .text to .content
+        page_content = scraper.get(url).text
     except HTTPError as e:
         progressbar.close()
         print("\nTrying to reach the website returned an error!")
@@ -216,7 +217,8 @@ while True:
         system("pause")
         exit()
 
-    page_content = page_content.decode("utf-8")
+    #Convert html entities to text
+    page_content = unescape(page_content)
 
     #content start search was here
     book_txt = ""
@@ -281,7 +283,7 @@ while True:
         print()
     else:
         try:
-            with open(folder_path + file_name, "w", "utf-8") as txt_file:
+            with open(folder_path + file_name, "w", encoding="utf-8") as txt_file:
                 txt_file.write(book_txt)
         except OSError as e:
             progressbar.close()
