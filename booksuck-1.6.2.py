@@ -4,7 +4,7 @@
 #Copyright notice is at the end.
 
 from urllib.request import HTTPError
-from html import unescape
+from html import unescape, escape
 from tqdm import tqdm
 from os import mkdir, system
 from re import search
@@ -255,6 +255,7 @@ while True:
         for l in list(range(len(removed_tags))):
             book_line = book_line.replace(removed_tags[l], "")
 
+        
         tag_found = False
         for tag in forbidden_tags:
             if tag in book_line:

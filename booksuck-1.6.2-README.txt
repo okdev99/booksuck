@@ -47,6 +47,9 @@ Email: okdev99@gmail.com
 
 
 ---Changelog---
+BookSuck 1.6.2 (24.08.2022)
+- Added unescaping HTML special characters
+
 BookSuck 1.6.1 (15.07.2022)
 - If scraped page text is the same as previous text, it is not saved to file
 - If next chapter url is the same as previous, halt the operation with some instructions on how to proceed
