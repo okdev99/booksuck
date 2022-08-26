@@ -32,7 +32,7 @@ BookSuck 1.6 (30.06.2022)
 - Incorrect input is identified and help text added
 - Program no longer iterates chapters, but looks for "next" button on page and copies it's link
 - Handling of multiple (fractioned) chapters has been added
-- Handling of <table>, <caption>, <tbody>, <td> and <tr> tags has beend added
+- Handling of "<table>, <caption>, <tbody>, <td> and <tr>" tags has beend added
 
 BookSuck 1.5 (19.06.2022)
 - Compatible with macOS filesystem
@@ -43,10 +43,10 @@ BookSuck 1.4 (17.06.2022)
 
 BookSuck 1.3 (11.06.2022)
 - User can now choose to use chapter title as filename or inputted book name
-- Handling of <span> tags has been added
+- Handling of "<span>" tags has been added
 
 BookSuck 1.2 (10.06.2022)
-- Handling of <em> tags has been added
+- Handling of "<em>" tags has been added
 - Program reads the chapter title and uses it to name its output file
 - Rudimentary error correction has been added
 
