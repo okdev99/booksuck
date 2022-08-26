@@ -1,4 +1,6 @@
 # BookSuck
+Contact email: okdev99@gmail.com
+
 This is a repository for my project BookSuck.
 
 Information about my program can be found from booksuck-README.txt.
