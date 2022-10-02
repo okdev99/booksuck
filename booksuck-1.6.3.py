@@ -8,34 +8,67 @@ from html import unescape, escape
 from tqdm import tqdm
 from os import mkdir, system
 from re import search
-from cloudscraper import create_scraper
+import cloudscraper
 
-version = "1.6.2"
+class Book:
+    """
+    Book class has almost every variable needed for the operation
+    
+        Parameters:
+            book_name
+            url
+            website
+            ending_chapter_number
+            chapter_file_name_based_on_book_name
+            folder_path
+            generate_folder
+            page
+            title_name
+        
+        Functions:
+            set_page_info(): Set current page, url and title name to the list of pages
+            save_to_file(): Save all pages in the pages list to specified folder
 
-#These tags are removed from the text, but the text inside of them is saved.
-removed_tags = ["<em>", "</em>", "<strong>", "</strong>", "<hr>", "</hr>", "<span>", "</span>", "<table>", "</table>", "<caption>", "</caption>", "<tbody>", "</tbody>", "<td>", "</td>", "<tr>", "</tr>", "<i>", "</i>"]
 
-forbidden_tags = ["<sub>", "</sub>", "<a href=\""]
+    """
+    def __init__(self, input):
+        self.book_name = input[0]
+        self.url = input[1]
+        self.website = input[2]
+        self.ending_chapter_number = input[3]
+        self.chapter_file_name_based_on_book_name = input[4]
+        self.folder_path = input[5]
+        self.generate_folder = input[6]
+        self.iterator = 0
+        self.page = ""
+        self.title_name = ""
+    
+    def __str__(self):
+        return f"Book name: {self.book_name}\nUrl: {self.url}\nWebsite: {self.website}\nEnding chapter: {self.ending_chapter_number}\nFile based on book name: {self.chapter_file_name_based_on_book_name}\nFolder path: {self.folder_path}\nGenerate folder: {self.generate_folder}"
 
-#If filename is based on title, these characters are removed from the filename.
-forbidden_chars = ["#", "%", "&", "{", "}", "/", "\\", "<", ">", "€", "$", "!", "?", "+", "@", "\"", "'", "´", "`", "*", ":", ";"]
 
-#This is a list of website where this program is known to work.
-working_websites = ["www.lightnovelpub.com", "www.readlightnovel.me"]
+    def set_page_info(self):
+        """Set classes own variables to a list with, page text, title_name and url of the chapter."""
+        book_pages[self.iterator] = (self.page, self.title_name, self.url)
+    
+    def save_to_file(self):
+        """Save chapters in the pages list to aready specified output folder."""
+        #Make here the file saving function
+        pass
 
-#Program looks for these buttons on website
-next_buttons = ["next", "Next", "NEXT", "next chapter", "Next Chapter", "Next chapter", "next Chapter", "NEXT CHAPTER"]
-
-href = "href=\""
-
-previous_chapter_txt = ""
-previous_url = ""
-
-print(f"BookSuck {version} is starting.\nRefer to associated README for more details.\n")
-
-#Input & overview loop
-while True:
-    #Url input loop
+def ask_input() -> tuple:
+    """
+    Ask user for input and return it in a tuple format, ready for book class.
+    
+        Returns:
+                book_name (str): The name of the book
+                url (str): Url of the chapter
+                website (str): Website where book is
+                ending_chapter_number (str): The chapter number of the ending chapter
+                chapter_file_name_based_on_book_name (str): Whether file name should be book_name
+                folder_path (str): The path to designated output folder
+                generate_folder (str): Whether the book should saved on its own folder
+    """
     while True:
         run_anyway = ""
         print("Inputted url must be the url of the books starting chapter, not the default page of the website!")
@@ -113,11 +146,36 @@ while True:
             break
     
     if choices_right in ["y", "yes"]:
-        break
+        return book_name, url, website, ending_chapter_number, chapter_file_name_based_on_book_name, folder_path, generate_folder
 
-if "\\" in folder_path:
+version = "1.7"
+
+#These tags are removed from the text, but the text inside of them is saved.
+removed_tags = ["<em>", "</em>", "<strong>", "</strong>", "<hr>", "</hr>", "<span>", "</span>", "<table>", "</table>", "<caption>", "</caption>", "<tbody>", "</tbody>", "<td>", "</td>", "<tr>", "</tr>", "<i>", "</i>"]
+
+forbidden_tags = ["<sub>", "</sub>", "<a href=\""]
+
+#If filename is based on title, these characters are removed from the filename.
+forbidden_chars = ["#", "%", "&", "{", "}", "/", "\\", "<", ">", "€", "$", "!", "?", "+", "@", "\"", "'", "´", "`", "*", ":", ";"]
+
+#This is a list of website where this program is known to work.
+working_websites = ["www.lightnovelpub.com", "www.readlightnovel.me"]
+
+#Program looks for these buttons on website
+next_buttons = ["next", "Next", "NEXT", "next chapter", "Next Chapter", "Next chapter", "next Chapter", "NEXT CHAPTER"]
+
+href = "href=\""
+
+previous_chapter_txt = ""
+previous_url = ""
+
+print(f"BookSuck {version} is starting.\nRefer to associated README for more details.\n")
+
+book = Book(ask_input())
+
+if "\\" in book.folder_path:
     directory_separator = "\\"
-elif "/" in folder_path:
+elif "/" in book.folder_path:
     directory_separator = "/"
 
 website_url = url[0:url.find("/", 10)]
@@ -150,7 +208,7 @@ else:
         else:
             start_chapter_number = start_chapter_number[:-1]
 
-scraper = create_scraper()
+scraper = cloudscrapercreate_scraper()
 
 if generate_folder in ["y", "yes"]:
     try:
@@ -160,7 +218,7 @@ if generate_folder in ["y", "yes"]:
         print("Error code: ", e)
         print("Check if the program has read, write & execute permissions and the folder does not already exist.")
         system("pause")
-        exit()
+        exit(1)
 
 progressbar = tqdm(total=int(ending_chapter_number)+1-int(start_chapter_number), desc="Progress: ")
 
@@ -215,7 +273,7 @@ while True:
         print(f"Website: {url}")
         print("Error: ", e)
         system("pause")
-        exit()
+        exit(1)
 
     #Convert html entities to text
     page_content = unescape(page_content)
@@ -266,6 +324,7 @@ while True:
         
         content_start_search = content_p_start_location + 1
 
+    #Look for the chapter title
     if chapter_file_name_based_on_book_name in ["y", "yes"]:
         title_name = book_name
 
@@ -292,7 +351,7 @@ while True:
             print("Check if BookSuck program has write, read and execute permissions on the desired folder.")
             print("Error: ", e)
             system("pause")
-            exit()
+            exit(1)
     
     end_reached = search(("([^0-9]" + ending_chapter_number + "[^0-9])"), (url + "-"))
 
@@ -327,7 +386,7 @@ while True:
         progressbar.close()
         print("Next button from website cannot be found!")
         print(f"This program looks for: {next_buttons}")
-        exit()
+        exit(1)
 
     page_find_next_href_start = page_content.find(href, page_find_next) + len(href)
     page_find_next_href_end = page_content.find("\"", page_find_next_href_start+2)
@@ -354,7 +413,7 @@ while True:
         print(f"Ending chapter number: {ending_chapter_number}")
         print(f"Current url: {url}")
         system("pause")
-        exit()
+        exit(1)
     
     previous_chapter_txt = book_txt
     previous_url = url
