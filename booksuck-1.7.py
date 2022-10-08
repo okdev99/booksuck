@@ -185,6 +185,16 @@ def get_starting_chapter_number(book) -> str:
     
     return start_chapter_number
 
+def make_folder(book):
+    try:
+        mkdir(book.folder_path + book.book_name + directory_separator)
+    except OSError as e:
+        print(f"Could not create a folder as a: {book.folder_path + book.book_name + directory_separator}")
+        print("Error code: ", e)
+        print("Check if the program has read, write & execute permissions and the folder does not already exist.")
+        system("pause")
+        exit(1)
+
 version = "1.7"
 
 #These tags are removed from the text, but the text inside of them is saved.
@@ -220,16 +230,10 @@ website_url = book.url[0:book.url.find("/", 10)]
 starting_chapter_number = get_starting_chapter_number(book)
 
 scraper = cloudscraper.create_scraper()
-
+    
 if book.generate_folder in ["y", "yes"]:
-    try:
-        mkdir(book.folder_path + book.book_name + directory_separator)
-    except OSError as e:
-        print(f"Could not create a folder as a: {book.folder_path + book.book_name + directory_separator}")
-        print("Error code: ", e)
-        print("Check if the program has read, write & execute permissions and the folder does not already exist.")
-        system("pause")
-        exit(1)
+    make_folder(book)
+    
 
 progressbar = tqdm(total=int(book.ending_chapter_number)+1-int(starting_chapter_number), desc="Progress: ")
 
