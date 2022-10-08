@@ -14,22 +14,20 @@ class Book:
     """
     Book class has almost every variable needed for the operation
     
-        Parameters:
-            book_name
-            url
-            website
-            ending_chapter_number
-            chapter_file_name_based_on_book_name
-            folder_path
-            generate_folder
-            page
-            title_name
+    Parameters:
+    book_name
+    url
+    website
+    ending_chapter_number
+    chapter_file_name_based_on_book_name
+    folder_path
+    generate_folder
+    page
+    title_name
         
-        Functions:
-            set_page_info(): Set current page, url and title name to the list of pages
-            save_to_file(): Save all pages in the pages list to specified folder
-
-
+    Functions:
+    set_page_info(): Set current page, url and title name to the list of pages
+    save_to_file(): Save all pages in the pages list to specified folder
     """
     def __init__(self, input):
         self.book_name = input[0]
@@ -60,14 +58,15 @@ def ask_input() -> tuple:
     """
     Ask user for input and return it in a tuple format, ready for book class.
     
-        Returns:
-                book_name (str): The name of the book
-                url (str): Url of the chapter
-                website (str): Website where book is
-                ending_chapter_number (str): The chapter number of the ending chapter
-                chapter_file_name_based_on_book_name (str): Whether file name should be book_name
-                folder_path (str): The path to designated output folder
-                generate_folder (str): Whether the book should saved on its own folder
+    Returns:
+    In a tuple:
+        book_name (str): The name of the book
+        url (str): Url of the chapter
+        website (str): Website where book is
+        ending_chapter_number (str): The chapter number of the ending chapter
+        chapter_file_name_based_on_book_name (str): Whether file name should be book_name
+        folder_path (str): The path to designated output folder
+        generate_folder (str): Whether the book should saved on its own folder
     """
     while True:
         run_anyway = ""
@@ -148,6 +147,44 @@ def ask_input() -> tuple:
     if choices_right in ["y", "yes"]:
         return book_name, url, website, ending_chapter_number, chapter_file_name_based_on_book_name, folder_path, generate_folder
 
+def get_starting_chapter_number(book) -> str:
+    """
+    Finds and outputs books starting chapter number from books url.
+
+    Parameters:
+    book: Book class
+
+    Returns:
+    starting_chapter_number (str): the starting chapter number from book.url
+    """
+    t = -1
+    while True:
+        last_line = book.url.find("-", t)
+        if last_line == -1:
+            t -= 1
+        else:
+            t = -1
+            break
+
+    if book.url[last_line-1].isdigit() and book.url[last_line+1].isdigit():
+        while True:
+            second_last_line = book.url.find("-", last_line+t)
+            if second_last_line == last_line:
+                t -= 1
+            else:
+                t = -1
+                break
+        start_chapter_number = book.url[second_last_line+1:last_line]
+    else:
+        start_chapter_number = book.url[last_line+1:]
+        while True:
+            if start_chapter_number.isdigit():
+                break
+            else:
+                start_chapter_number = start_chapter_number[:-1]
+    
+    return start_chapter_number
+
 version = "1.7"
 
 #These tags are removed from the text, but the text inside of them is saved.
@@ -178,49 +215,23 @@ if "\\" in book.folder_path:
 elif "/" in book.folder_path:
     directory_separator = "/"
 
-website_url = url[0:url.find("/", 10)]
+website_url = book.url[0:book.url.find("/", 10)]
 
-#Find url's starting chapter number
-t = -1
-while True:
-    last_line = url.find("-", t)
-    if last_line == -1:
-        t -= 1
-    else:
-        t = -1
-        break
+starting_chapter_number = get_starting_chapter_number(book)
 
-if url[last_line-1].isdigit() and url[last_line+1].isdigit():
-        
-    while True:
-        second_last_line = url.find("-", last_line+t)
-        if second_last_line == last_line:
-            t -= 1
-        else:
-            t = -1
-            break
-    start_chapter_number = url[second_last_line+1:last_line]
-else:
-    start_chapter_number = url[last_line+1:]
-    while True:
-        if start_chapter_number[-1].isdigit():
-            break
-        else:
-            start_chapter_number = start_chapter_number[:-1]
+scraper = cloudscraper.create_scraper()
 
-scraper = cloudscrapercreate_scraper()
-
-if generate_folder in ["y", "yes"]:
+if book.generate_folder in ["y", "yes"]:
     try:
-        mkdir(folder_path + book_name + directory_separator)
+        mkdir(book.folder_path + book.book_name + directory_separator)
     except OSError as e:
-        print(f"Could not create a folder as a: {folder_path + book_name + directory_separator}")
+        print(f"Could not create a folder as a: {book.folder_path + book.book_name + directory_separator}")
         print("Error code: ", e)
         print("Check if the program has read, write & execute permissions and the folder does not already exist.")
         system("pause")
         exit(1)
 
-progressbar = tqdm(total=int(ending_chapter_number)+1-int(start_chapter_number), desc="Progress: ")
+progressbar = tqdm(total=int(book.ending_chapter_number)+1-int(starting_chapter_number), desc="Progress: ")
 
 #Website scraping & content manipulation loop
 i = 1
@@ -230,25 +241,25 @@ while True:
     #Find current chapter number
     t = -1
     while True:
-        last_line = url.find("-", t)
+        last_line = book.url.find("-", t)
         if last_line == -1:
             t -= 1
         else:
             t = -1
             break
 
-    if url[last_line-1].isdigit() and url[last_line+1].isdigit():
+    if book.url[last_line-1].isdigit() and book.url[last_line+1].isdigit():
         
         while True:
-            second_last_line = url.find("-", last_line+t)
+            second_last_line = book.url.find("-", last_line+t)
             if second_last_line == last_line:
                 t -= 1
             else:
                 t = -1
                 break
-        chapter_number = url[second_last_line+1:last_line]
+        chapter_number = book.url[second_last_line+1:last_line]
     else:
-        chapter_number = url[last_line+1:]
+        chapter_number = book.url[last_line+1:]
         while True:
             if chapter_number[-1].isdigit():
                 break
@@ -266,11 +277,11 @@ while True:
 
     #Scrape the text from site
     try:
-        page_content = scraper.get(url).text
+        page_content = scraper.get(book.url).text
     except HTTPError as e:
         progressbar.close()
         print("\nTrying to reach the website returned an error!")
-        print(f"Website: {url}")
+        print(f"Website: {book.url}")
         print("Error: ", e)
         system("pause")
         exit(1)
@@ -295,7 +306,7 @@ while True:
         book_txt = book_txt + title_name + "\n\n"
         is_title = True
     else:
-        title_name = book_name
+        title_name = book.book_name
         book_txt = book_txt + title_name + "-chapter-" + chapter_number + i_iterator + "\n\n"
         is_title = False
 
@@ -325,15 +336,15 @@ while True:
         content_start_search = content_p_start_location + 1
 
     #Look for the chapter title
-    if chapter_file_name_based_on_book_name in ["y", "yes"]:
-        title_name = book_name
+    if book.chapter_file_name_based_on_book_name in ["y", "yes"]:
+        title_name = book.book_name
 
-    if generate_folder in ["y", "yes"]:
-        file_name = book_name + directory_separator + title_name
+    if book.generate_folder in ["y", "yes"]:
+        file_name = book.book_name + directory_separator + title_name
     else:
         file_name = title_name
 
-    if is_title and (chapter_file_name_based_on_book_name in ["n", "no"]):
+    if is_title and (book.chapter_file_name_based_on_book_name in ["n", "no"]):
         file_name = file_name + ".txt"
     else:
         file_name = file_name + "-chapter-" + chapter_number + i_iterator + ".txt"
@@ -343,25 +354,25 @@ while True:
         print()
     else:
         try:
-            with open(folder_path + file_name, "w", encoding="utf-8") as txt_file:
+            with open(book.folder_path + file_name, "w", encoding="utf-8") as txt_file:
                 txt_file.write(book_txt)
         except OSError as e:
             progressbar.close()
-            print("Writing file to the folder in path: ", folder_path, " failed.")
+            print("Writing file to the folder in path: ", book.folder_path, " failed.")
             print("Check if BookSuck program has write, read and execute permissions on the desired folder.")
             print("Error: ", e)
             system("pause")
             exit(1)
     
-    end_reached = search(("([^0-9]" + ending_chapter_number + "[^0-9])"), (url + "-"))
+    end_reached = search(("([^0-9]" + book.ending_chapter_number + "[^0-9])"), (book.url + "-"))
 
     if end_reached:
         break
 
     #Looks for "next" button on website and copies it's link
-    if website == "www.lightnovelpub.com":
+    if book.website == "www.lightnovelpub.com":
         page_find_next = page_content.find("a rel=\"next\"")
-    elif website == "www.readlightnovel.me":
+    elif book.website == "www.readlightnovel.me":
         x = page_content.find("class=\"next next-link\">")
 
         if x == -1:
@@ -397,30 +408,30 @@ while True:
         print("The end of the novel has been reached.")
         break
     
-    if (website in url) and (("https://" or "http://") in url):
-        url = next_chapter
-    elif website in url:
-        url = "https://" + next_chapter
+    if (book.website in next_chapter) and (("https://" or "http://") in next_chapter): #changed book.url to next_chapter in condition
+        book.url = next_chapter
+    elif book.website in next_chapter:
+        book.url = "https://" + next_chapter
     else:
-        url = website_url + next_chapter
+        book.url = website_url + next_chapter
     
-    if url == previous_url:
+    if book.url == previous_url:
         progressbar.close()
         print("Next chapter link is the same as the current chapter url.")
         print("Check manually from the website, if the next chapter link actually points to the next chapter.")
         print("If not, then continue downloading the book where the program left.")
         print(f"Current chapter number: {chapter_number}")
-        print(f"Ending chapter number: {ending_chapter_number}")
-        print(f"Current url: {url}")
+        print(f"Ending chapter number: {book.ending_chapter_number}")
+        print(f"Current url: {book.url}")
         system("pause")
         exit(1)
     
     previous_chapter_txt = book_txt
-    previous_url = url
+    previous_url = book.url
 
 progressbar.close()
 print(f"\nBookSuck {version}:")
-print(f"{book_name} has been succesfully downloaded.")
+print(f"{book.book_name} has been succesfully downloaded.")
 system("pause")
 
 #    --Start of copyright notice--
