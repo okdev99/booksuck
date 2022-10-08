@@ -195,6 +195,18 @@ def make_folder(book):
         system("pause")
         exit(1)
 
+def get_page_text(book) -> str:
+    try:
+        page_content = scraper.get(book.url).text
+        return page_content
+    except HTTPError as e:
+        progressbar.close()
+        print("\nTrying to reach the website returned an error!")
+        print(f"Website: {book.url}")
+        print("Error: ", e)
+        system("pause")
+        exit(1)
+
 version = "1.7"
 
 #These tags are removed from the text, but the text inside of them is saved.
@@ -279,16 +291,7 @@ while True:
         previous_chapter = chapter_number
         progressbar.update(1)
 
-    #Scrape the text from site
-    try:
-        page_content = scraper.get(book.url).text
-    except HTTPError as e:
-        progressbar.close()
-        print("\nTrying to reach the website returned an error!")
-        print(f"Website: {book.url}")
-        print("Error: ", e)
-        system("pause")
-        exit(1)
+    page_content = get_page_text(book)
 
     #Convert html entities to text
     page_content = unescape(page_content)
