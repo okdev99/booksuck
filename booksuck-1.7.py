@@ -404,7 +404,9 @@ def make_filename() -> str:
 
 print(f"BookSuck {version} is starting.\nRefer to associated README for more details.\n")
 
-book = Book(ask_input())
+#book = Book(ask_input())
+
+book = Book(("TEST", "https://www.lightnovelpub.com/novel/possessing-nothing-30091921/495-chapter-90", "www.lightnovelpub.com", "200", "no", "/home/ottok/test/", "yes"))
 
 if "\\" in book.folder_path:
     directory_separator = "\\"

@@ -21,19 +21,7 @@ If the copied text has one of the following tags, then tags will be removed and 
 The program looks for <title> tag inside the website and if found, uses it to make the chapter file name (if user wants filename to be the same as title) and also, appends it to the start of the text file.
 If <title> tag is not found, the program makes a title based on the users inputted book name.
 
-Program looks for a "next" button and copies it's link to the next chapter. List of recognised buttons are:
-- next
-- Next
-- NEXT
-- next chapter
-- Next chapter
-- Next Chapter
-- next Chapter
-- NEXT CHAPTER
-
-Since the program looks for the next chapter button, it can handle fractioned, multiple pages length of chapters, like 21.1, 21.2. When a fractioned chapter is copied the progressbar is not updated, so progressbar can hang even though the program is copying files as it should be.
-
-Progress bar is updated when a new chapter (not the same fraction) is found. This means that it is possible for the progress bar to show incorrect information, end prematurely or overflow. This kind of behaviour does not affect the programs operation at all. The progress bar is just there for the user.
+Program looks for a most similar url inside the scraped page and uses it as its next link.
 
 The program has a known working websites list hardcoded in it. The developer is testing and updating this list sometimes. If a website is not on the known websites list, but it has been shown to work, please contact the developer and let him know.
 
@@ -47,6 +35,11 @@ Email: okdev99@gmail.com
 
 
 ---Changelog---
+BookSuck 1.7 (10.10.2022)
+- Programs operation was made to use functions
+- Documentation is added to help understand the code and functions
+- Page parsing is now done with BeautifulSoup4
+
 BookSuck 1.6.2 (24.08.2022)
 - Added unescaping HTML special characters
 
