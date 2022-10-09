@@ -9,6 +9,8 @@ If you want to run the source code, then you need the following depencies:
 - python 3
 - cloudscraper
 - tqdm
+- BeautifulSoup4
+- Levenshtein
 
 If you do not have these use pip to install them.
 
