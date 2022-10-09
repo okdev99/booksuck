@@ -7,8 +7,35 @@ from urllib.request import HTTPError
 from html import unescape, escape
 from tqdm import tqdm
 from os import mkdir, system
-from re import search
-import cloudscraper
+from bs4 import BeautifulSoup
+import cloudscraper, re, Levenshtein
+
+version = "1.7"
+
+#These tags are removed from the text, but the text inside of them is saved.
+removed_tags = ["<em>", "</em>", "<strong>", "</strong>", "<hr>", "</hr>", "<span>", "</span>", "<table>", "</table>", "<caption>", "</caption>", "<tbody>", "</tbody>", "<td>", "</td>", "<tr>", "</tr>", "<i>", "</i>"]
+
+forbidden_tags = ["<sub>", "</sub>", "<a href=\""]
+
+#If filename is based on title, these characters are removed from the filename.
+forbidden_chars = ["#", "%", "&", "{", "}", "/", "\\", "<", ">", "€", "$", "!", "?", "+", "@", "\"", "'", "´", "`", "*", ":", ";"]
+
+#This is a list of website where this program is known to work.
+working_websites = ["www.lightnovelpub.com", "www.readlightnovel.me"]
+
+#Program looks for these buttons on website
+next_buttons = ["next", "Next", "NEXT", "next chapter", "Next Chapter", "Next chapter", "next Chapter", "NEXT CHAPTER"]
+
+href = "href=\""
+
+previous_chapter_txt = ""
+previous_urls = []
+
+i = 1
+i_iterator = ""
+previous_chapter = ""
+
+is_title = None
 
 class Book:
     """
@@ -37,22 +64,42 @@ class Book:
         self.chapter_file_name_based_on_book_name = input[4]
         self.folder_path = input[5]
         self.generate_folder = input[6]
-        self.iterator = 0
         self.page = ""
         self.title_name = ""
+        self.book_pages = []
     
     def __str__(self):
         return f"Book name: {self.book_name}\nUrl: {self.url}\nWebsite: {self.website}\nEnding chapter: {self.ending_chapter_number}\nFile based on book name: {self.chapter_file_name_based_on_book_name}\nFolder path: {self.folder_path}\nGenerate folder: {self.generate_folder}"
 
-
-    def set_page_info(self):
+    def set_page_info(self, filename: str):
         """Set classes own variables to a list with, page text, title_name and url of the chapter."""
-        book_pages[self.iterator] = (self.page, self.title_name, self.url)
+        global progressbar
+
+        self.book_pages.append((self.page, self.title_name, filename))
+        progressbar.update(1)
     
     def save_to_file(self):
         """Save chapters in the pages list to aready specified output folder."""
-        #Make here the file saving function
-        pass
+        progressbar = tqdm(total=len(self.book_pages), desc="Writing: ")
+
+        for i in list(range(len(self.book_pages))):
+            if self.chapter_file_name_based_on_book_name in ["y", "yes"]:
+                self.title_name = self.book_name
+
+            #If book_txt is the same as previous chapter, do not copy to file
+            if self.book_pages[i][0][self.book_pages[i][0].find("\n\n"):] is not self.book_pages[i-1][0][self.book_pages[i-1][0].find("\n\n"):]:
+                try:
+                    with open(self.folder_path + self.book_pages[i][2], "w", encoding="utf-8") as txt_file:
+                        txt_file.write(unescape(self.book_pages[i][0]))
+                        progressbar.update(1)
+                except OSError as e:
+                    progressbar.close()
+                    print("Writing file to the folder in path: ", self.folder_path, " failed.")
+                    print("Check if BookSuck program has write, read and execute permissions on the desired folder.")
+                    print("Error: ", e)
+                    system("pause")
+                    exit(1)
+        progressbar.close()
 
 def ask_input() -> tuple:
     """
@@ -147,45 +194,61 @@ def ask_input() -> tuple:
     if choices_right in ["y", "yes"]:
         return book_name, url, website, ending_chapter_number, chapter_file_name_based_on_book_name, folder_path, generate_folder
 
-def get_starting_chapter_number(book) -> str:
-    """
-    Finds and outputs books starting chapter number from books url.
+def get_chapter_number(url: str) -> str:
+    """Finds and outputs starting chapter number from url.
 
     Parameters:
-    book: Book class
+    url (str): url of the specified chapter
 
     Returns:
-    starting_chapter_number (str): the starting chapter number from book.url
+    chapter_number (str): the chapter number from  inputted url
     """
-    t = -1
-    while True:
-        last_line = book.url.find("-", t)
-        if last_line == -1:
-            t -= 1
-        else:
-            t = -1
-            break
+    global previous_chapter
+    global i
 
-    if book.url[last_line-1].isdigit() and book.url[last_line+1].isdigit():
+    #This returns function gets empty string for first run of the loop, so it returns somethin below 0 so it cannot loop into 0 1 chapters.
+    if url == "":
+        return "-1"
+    else:
+        t = -1
         while True:
-            second_last_line = book.url.find("-", last_line+t)
-            if second_last_line == last_line:
+            last_line = url.find("-", t)
+            if last_line == -1:
                 t -= 1
             else:
                 t = -1
                 break
-        start_chapter_number = book.url[second_last_line+1:last_line]
-    else:
-        start_chapter_number = book.url[last_line+1:]
-        while True:
-            if start_chapter_number.isdigit():
-                break
-            else:
-                start_chapter_number = start_chapter_number[:-1]
-    
-    return start_chapter_number
 
-def make_folder(book):
+        if url[last_line-1].isdigit() and url[last_line+1].isdigit():
+            while True:
+                second_last_line = url.find("-", last_line+t)
+                if second_last_line == last_line:
+                    t -= 1
+                else:
+                    t = -1
+                    break
+            chapter_number = url[second_last_line+1:last_line]
+        else:
+            chapter_number = url[last_line+1:]
+            while True:
+                if chapter_number.isdigit():
+                    break
+                else:
+                    chapter_number = chapter_number[:-1]
+
+        if chapter_number == previous_chapter:
+            i_iterator = "-" + str(i)
+            i += 1
+        else:
+            i = 1
+            i_iterator = ""
+            previous_chapter = chapter_number
+            
+
+        return chapter_number
+
+def make_folder():
+    """Generates a folder with the specified name book.book_name to the book.folder_path"""
     try:
         mkdir(book.folder_path + book.book_name + directory_separator)
     except OSError as e:
@@ -195,7 +258,12 @@ def make_folder(book):
         system("pause")
         exit(1)
 
-def get_page_text(book) -> str:
+def get_page_text() -> str:
+    """Fetches the html page text in book.url
+
+    Returns:
+    page_content (str): content of the website of book.url
+    """
     try:
         page_content = scraper.get(book.url).text
         return page_content
@@ -207,30 +275,138 @@ def get_page_text(book) -> str:
         system("pause")
         exit(1)
 
-version = "1.7"
+def get_title() -> str:
+    """Searches page_content for <title> tags and if found returns it, if not found uses book_name
 
-#These tags are removed from the text, but the text inside of them is saved.
-removed_tags = ["<em>", "</em>", "<strong>", "</strong>", "<hr>", "</hr>", "<span>", "</span>", "<table>", "</table>", "<caption>", "</caption>", "<tbody>", "</tbody>", "<td>", "</td>", "<tr>", "</tr>", "<i>", "</i>"]
+    Returns:
+    title_name (str): if <title> is found; name of the <title> tag, if not found; book_name
 
-forbidden_tags = ["<sub>", "</sub>", "<a href=\""]
+    Side effects:
+    is_title (bool): True if title found, false otherwise
+    """
+    global is_title
+    title_name = page_content.title
 
-#If filename is based on title, these characters are removed from the filename.
-forbidden_chars = ["#", "%", "&", "{", "}", "/", "\\", "<", ">", "€", "$", "!", "?", "+", "@", "\"", "'", "´", "`", "*", ":", ";"]
+    if title_name != None:
+        title_name = str(title_name).replace("<title>", "").replace("</title>", "")
+        for char in forbidden_chars:
+            title_name = title_name.replace(char, "")
+        title_name = title_name + "\n\n"
+        is_title = True
+    else:
+        title_name = book.book_name + "-chapter-" + chapter_number + i_iterator + "\n\n"
+        is_title = False
+    
+    return title_name
 
-#This is a list of website where this program is known to work.
-working_websites = ["www.lightnovelpub.com", "www.readlightnovel.me"]
+def get_book_text() -> str:
+    """Iterates page_contents <p> tags and appends the text to book_text
+    
+    Returns:
+    book_text (str): from page_content found paragraphs
+    """
+    book_txt = ""
+    paragraph_list = page_content.find_all("p")
+ 
+    for line in paragraph_list:
+        book_line = str(line).replace("<p>", "").replace("</p>", "").strip("\n").strip("\t")
+        for tag in removed_tags:
+            book_line = book_line.replace(tag, "")
+ 
+        tag_found = False
+        for tag in forbidden_tags:
+            if tag in book_line:
+                tag_found = True
+         
+        if not tag_found and book_line != "":
+            book_txt = book_txt + book_line + "\n\n"
+    
+    return book_txt
 
-#Program looks for these buttons on website
-next_buttons = ["next", "Next", "NEXT", "next chapter", "Next Chapter", "Next chapter", "next Chapter", "NEXT CHAPTER"]
+def find_next_chapter_link() -> str:
+    """Finds the most similar link in all <a href=> tags to the current chapter link.
+    Returns:
+    next_chapter (str): link to the next chapter, or if not found: not found
+    """
+    global progressbar, previous_urls
 
-href = "href=\""
+    a_list = page_content.find_all("a", href=True)
+    link_list = []
+    url = book.url.replace(book.website, "").replace("https://", "").replace("http://", "")
 
-previous_chapter_txt = ""
-previous_url = ""
+    for i in list(range(len(a_list))):
+        a_list[i] = str(a_list[i]["href"])
+
+    for link in a_list:
+        #Iterate links, and rate them on how much they differ to the current url and then pick the min points gotten
+        levenshtein_distance = Levenshtein.distance(link, url)
+        link_list.append((link, levenshtein_distance))
+    
+    link_list.sort(key=lambda cell: cell[1])
+
+    next_chapter_raw = link_list[0][0]
+    
+    i = 1
+    while (link_list[i][1] < 3):
+        if (book.website not in next_chapter_raw) and (("https://" or "http://") not in next_chapter_raw):
+            next_chapter = website_url + next_chapter_raw
+        elif book.website in next_chapter_raw:
+            next_chapter = "https://" + next_chapter_raw
+
+        is_previous_url = False
+        for previous_url in previous_urls:
+            if next_chapter_raw == previous_url:
+                is_previous_url = True
+        
+        if is_previous_url:
+            next_chapter = link_list[i][0]
+            i += 1
+
+            if link_list[i][1] >= 3:
+                #Weird behaviour is here, as in cannot find next chapter link and previous & current are the same
+                
+                progressbar.close()
+                print("Next chapter cannot be found!")
+                print("Previous urls: ", previous_urls)
+                print("Book url: ", book.url)
+                print("Next chapter: ", next_chapter)
+                while True:
+                    user_input = input("Write scraped pages to folder? (y/n): ")
+                    if user_input.lower() in ["n", "no"]:
+                        break
+                    elif user_input.lower() in ["y", "yes"]:
+                        book.save_to_file()
+                        break
+
+                system("pause")
+                exit(1)
+        else:
+            previous_urls.append(next_chapter_raw)
+            return next_chapter
+        
+def make_filename() -> str:
+    """Generate a filename based on book.title_name and i_iterator (for sub chapters).
+    
+    Returns:
+    filename (str): filename based on title and i_iterator
+    """
+    if book.generate_folder in ["y", "yes"]:
+        file_name = book.book_name + directory_separator + book.title_name.replace("\n", "")
+    else:
+        file_name = book.title_name.replace("\n", "")
+    
+    if is_title and (book.chapter_file_name_based_on_book_name in ["n", "no"]):
+        file_name = file_name + ".txt"
+    else:
+        file_name = file_name + "-chapter-" + chapter_number + i_iterator + ".txt"
+    
+    return file_name
 
 print(f"BookSuck {version} is starting.\nRefer to associated README for more details.\n")
 
-book = Book(ask_input())
+#book = Book(ask_input())
+
+book = Book(("TEST", "https://www.lightnovelpub.com/novel/possessing-nothing-30091921/495-chapter-90", "www.lightnovelpub.com", "200", "no", "/home/ottok/test/", "yes"))
 
 if "\\" in book.folder_path:
     directory_separator = "\\"
@@ -239,204 +415,38 @@ elif "/" in book.folder_path:
 
 website_url = book.url[0:book.url.find("/", 10)]
 
-starting_chapter_number = get_starting_chapter_number(book)
+starting_chapter_number = get_chapter_number(book.url)
 
 scraper = cloudscraper.create_scraper()
     
 if book.generate_folder in ["y", "yes"]:
-    make_folder(book)
+    make_folder()
     
 
-progressbar = tqdm(total=int(book.ending_chapter_number)+1-int(starting_chapter_number), desc="Progress: ")
+progressbar = tqdm(total=int(book.ending_chapter_number)+1-int(starting_chapter_number), desc="Scraping: ")
 
 #Website scraping & content manipulation loop
-i = 1
-previous_chapter = ""
 while True:
+    page_content = BeautifulSoup(get_page_text(), "html.parser")
 
-    #Find current chapter number
-    t = -1
-    while True:
-        last_line = book.url.find("-", t)
-        if last_line == -1:
-            t -= 1
-        else:
-            t = -1
-            break
+    book.title_name = get_title()
 
-    if book.url[last_line-1].isdigit() and book.url[last_line+1].isdigit():
-        
-        while True:
-            second_last_line = book.url.find("-", last_line+t)
-            if second_last_line == last_line:
-                t -= 1
-            else:
-                t = -1
-                break
-        chapter_number = book.url[second_last_line+1:last_line]
-    else:
-        chapter_number = book.url[last_line+1:]
-        while True:
-            if chapter_number[-1].isdigit():
-                break
-            else:
-                chapter_number = chapter_number[:-1]
+    book.page = get_book_text()
 
-    if chapter_number == previous_chapter:
-        i_iterator = "-" + str(i)
-        i += 1
-    else:
-        i = 1
-        i_iterator = ""
-        previous_chapter = chapter_number
-        progressbar.update(1)
-
-    page_content = get_page_text(book)
-
-    #Convert html entities to text
-    page_content = unescape(page_content)
-
-    #content start search was here
-    book_txt = ""
-    title_name = ""
-
-    #Determine the title of the chapter
-    content_title_start_location = page_content.find("<title>")
-    content_title_end_location = page_content.find("</title>")
-
-    if content_title_start_location != -1:
-        title_name = page_content[(content_title_start_location + len("<title>")):content_title_end_location]
-
-        for j in list(range(0, len(forbidden_chars))):
-            title_name = title_name.replace(forbidden_chars[j], "")
-
-        book_txt = book_txt + title_name + "\n\n"
-        is_title = True
-    else:
-        title_name = book.book_name
-        book_txt = book_txt + title_name + "-chapter-" + chapter_number + i_iterator + "\n\n"
-        is_title = False
-
-    #Scraped page, paragraph finding, generating book_txt (after loop, book_txt is finished)
-    content_start_search = 0
-    while True:
-        content_p_start_location = page_content.find("<p>", content_start_search)
-        content_p_end_location = page_content.find("</p>", content_p_start_location + 1)
-
-        if content_p_start_location == -1:
-            break
-        
-        book_line = page_content[(content_p_start_location + len("<p>")):content_p_end_location].strip("\n\t")
-
-        for l in list(range(len(removed_tags))):
-            book_line = book_line.replace(removed_tags[l], "")
-
-        
-        tag_found = False
-        for tag in forbidden_tags:
-            if tag in book_line:
-                tag_found = True
-        
-        if not tag_found and book_line != "":
-            book_txt = book_txt + book_line + "\n\n"
-        
-        content_start_search = content_p_start_location + 1
-
-    #Look for the chapter title
-    if book.chapter_file_name_based_on_book_name in ["y", "yes"]:
-        title_name = book.book_name
-
-    if book.generate_folder in ["y", "yes"]:
-        file_name = book.book_name + directory_separator + title_name
-    else:
-        file_name = title_name
-
-    if is_title and (book.chapter_file_name_based_on_book_name in ["n", "no"]):
-        file_name = file_name + ".txt"
-    else:
-        file_name = file_name + "-chapter-" + chapter_number + i_iterator + ".txt"
-
-    #If book_txt is the same as previous chapter, do not copy to file
-    if book_txt[book_txt.find("\n\n"):] is previous_chapter_txt[previous_chapter_txt.find("\n\n"):]:
-        print()
-    else:
-        try:
-            with open(book.folder_path + file_name, "w", encoding="utf-8") as txt_file:
-                txt_file.write(book_txt)
-        except OSError as e:
-            progressbar.close()
-            print("Writing file to the folder in path: ", book.folder_path, " failed.")
-            print("Check if BookSuck program has write, read and execute permissions on the desired folder.")
-            print("Error: ", e)
-            system("pause")
-            exit(1)
+    filename = make_filename()
+    book.set_page_info(filename)
     
-    end_reached = search(("([^0-9]" + book.ending_chapter_number + "[^0-9])"), (book.url + "-"))
+    end_reached = re.search(("([^0-9]" + book.ending_chapter_number + "[^0-9])"), (book.url + "-"))
 
     if end_reached:
         break
-
-    #Looks for "next" button on website and copies it's link
-    if book.website == "www.lightnovelpub.com":
-        page_find_next = page_content.find("a rel=\"next\"")
-    elif book.website == "www.readlightnovel.me":
-        x = page_content.find("class=\"next next-link\">")
-
-        if x == -1:
-            progressbar.close()
-            print("The end of the novel has been reached.")
-            break
-
-        while True:
-            if page_content.find(href, x, x+7) != -1:
-                page_find_next = page_content.find(href, x, x+7)
-                break
-            else:
-                x -= 1
-
-    if page_find_next == -1:
-        for n in next_buttons:
-            page_find_next = page_content.find(f"a rel=\"{n}\"")
-            if page_find_next != -1:
-                break
     
-    if page_find_next == -1:
-        progressbar.close()
-        print("Next button from website cannot be found!")
-        print(f"This program looks for: {next_buttons}")
-        exit(1)
-
-    page_find_next_href_start = page_content.find(href, page_find_next) + len(href)
-    page_find_next_href_end = page_content.find("\"", page_find_next_href_start+2)
-    next_chapter = page_content[page_find_next_href_start:page_find_next_href_end]
-
-    if "javascript" in next_chapter:
-        progressbar.close()
-        print("The end of the novel has been reached.")
-        break
-    
-    if (book.website in next_chapter) and (("https://" or "http://") in next_chapter): #changed book.url to next_chapter in condition
-        book.url = next_chapter
-    elif book.website in next_chapter:
-        book.url = "https://" + next_chapter
-    else:
-        book.url = website_url + next_chapter
-    
-    if book.url == previous_url:
-        progressbar.close()
-        print("Next chapter link is the same as the current chapter url.")
-        print("Check manually from the website, if the next chapter link actually points to the next chapter.")
-        print("If not, then continue downloading the book where the program left.")
-        print(f"Current chapter number: {chapter_number}")
-        print(f"Ending chapter number: {book.ending_chapter_number}")
-        print(f"Current url: {book.url}")
-        system("pause")
-        exit(1)
-    
-    previous_chapter_txt = book_txt
-    previous_url = book.url
+    previous_chapter_txt = book.page
+    book.url = find_next_chapter_link()
 
 progressbar.close()
+book.save_to_file()
+
 print(f"\nBookSuck {version}:")
 print(f"{book.book_name} has been succesfully downloaded.")
 system("pause")
