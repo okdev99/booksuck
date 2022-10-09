@@ -23,6 +23,11 @@ If a executable folder has a "onefile" on it's name, then you only need to downl
 
 ---Changelog---
 
+BookSuck 1.7 (10.10.2022)
+- Programs operation was made to use functions
+- Documentation is added to help understand the code and functions
+- Page parsing is now done with BeautifulSoup4
+
 BookSuck 1.6.2 (24.08.2022)
 - Added unescaping HTML special characters
 
