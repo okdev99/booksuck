@@ -4,40 +4,38 @@
 #Copyright notice is at the end.
 
 from urllib.request import HTTPError
-from html import unescape, escape
+from html import unescape
 from tqdm import tqdm
 from os import mkdir, system
 from bs4 import BeautifulSoup
 import cloudscraper, re, Levenshtein
 
+#These tags are removed from the text, but the text inside of them is saved.
+removed_tags = ["<em>", "</em>", "<strong>", "</strong>", "<hr>", "</hr>", "<span>", "</span>", "<table>", "</table>", "<caption>", "</caption>", "<tbody>", "</tbody>", "<td>", "</td>", "<tr>", "</tr>", "<i>", "</i>", "<b>", "</b>"]
+
+forbidden_tags = ["<sub>", "</sub>", "<a href=\""]
+
+#If filename is based on title, these characters are removed from the filename.
+forbidden_chars = ["#", "%", "&", "{", "}", "/", "\\", "<", ">", "€", "$", "!", "?", "+", "@", "\"", "'", "´", "`", "*", ":", ";"]
+
+#This is a list of website where this program is known to work.
+working_websites = ["www.lightnovelpub.com", "www.readlightnovel.me"]
+
+href = "href=\""
+
+previous_chapter_txt = ""
+previous_urls = []
+
+i = 1
+i_iterator = ""
+
+previous_chapter = ""
+previous_chapter_txt = ""
+is_title = None
+
+version = "1.7"
+
 def main():
-    version = "1.7"
-
-    #These tags are removed from the text, but the text inside of them is saved.
-    removed_tags = ["<em>", "</em>", "<strong>", "</strong>", "<hr>", "</hr>", "<span>", "</span>", "<table>", "</table>", "<caption>", "</caption>", "<tbody>", "</tbody>", "<td>", "</td>", "<tr>", "</tr>", "<i>", "</i>"]
-
-    forbidden_tags = ["<sub>", "</sub>", "<a href=\""]
-
-    #If filename is based on title, these characters are removed from the filename.
-    forbidden_chars = ["#", "%", "&", "{", "}", "/", "\\", "<", ">", "€", "$", "!", "?", "+", "@", "\"", "'", "´", "`", "*", ":", ";"]
-
-    #This is a list of website where this program is known to work.
-    working_websites = ["www.lightnovelpub.com", "www.readlightnovel.me"]
-
-    #Program looks for these buttons on website
-    next_buttons = ["next", "Next", "NEXT", "next chapter", "Next Chapter", "Next chapter", "next Chapter", "NEXT CHAPTER"]
-
-    href = "href=\""
-
-    previous_chapter_txt = ""
-    previous_urls = []
-
-    i = 1
-    i_iterator = ""
-    previous_chapter = ""
-
-    is_title = None
-
     class Book:
         """
         Book class has almost every variable needed for the operation
@@ -74,7 +72,6 @@ def main():
 
         def set_page_info(self, filename: str):
             """Set classes own variables to a list with, page text, title_name and url of the chapter."""
-            global progressbar
 
             self.book_pages.append((self.page, self.title_name, filename))
             progressbar.update(1)
@@ -204,8 +201,7 @@ def main():
         Returns:
         chapter_number (str): the chapter number from  inputted url
         """
-        global previous_chapter
-        global i
+        global previous_chapter, i, i_iterator
 
         #This returns function gets empty string for first run of the loop, so it returns somethin below 0 so it cannot loop into 0 1 chapters.
         if url == "":
@@ -268,7 +264,7 @@ def main():
         try:
             page_content = scraper.get(book.url).text
             return page_content
-        except HTTPError as e:
+        except (HTTPError, ConnectionError) as e:
             progressbar.close()
             print("\nTrying to reach the website returned an error!")
             print(f"Website: {book.url}")
@@ -306,11 +302,11 @@ def main():
         Returns:
         book_text (str): from page_content found paragraphs
         """
-        book_txt = ""
+        book_txt = book.title_name + "\n"
         paragraph_list = page_content.find_all("p")
     
         for line in paragraph_list:
-            book_line = str(line).replace("<p>", "").replace("</p>", "").strip("\n").strip("\t")
+            book_line = str(line).replace("<p>", "").replace("</p>", "").replace("\n", "").replace("\t", "")
             for tag in removed_tags:
                 book_line = book_line.replace(tag, "")
     
@@ -329,61 +325,57 @@ def main():
         Returns:
         next_chapter (str): link to the next chapter, or if not found: not found
         """
-        global progressbar, previous_urls
 
-        a_list = page_content.find_all("a", href=True)
+        a_list = page_content.select("a[href]")
         link_list = []
         url = book.url.replace(book.website, "").replace("https://", "").replace("http://", "")
+        
+        for a in a_list:
+            if "next" in str(a).lower():
+                link_list.append(a)
 
-        for i in list(range(len(a_list))):
-            a_list[i] = str(a_list[i]["href"])
-
-        for link in a_list:
+        for i in list(range(len(link_list))):
             #Iterate links, and rate them on how much they differ to the current url and then pick the min points gotten
-            levenshtein_distance = Levenshtein.distance(link, url)
-            link_list.append((link, levenshtein_distance))
+            levenshtein_distance = Levenshtein.distance(str(link_list[i].get("href")), url)
+            link_list[i] = (str(link_list[i].get("href")), levenshtein_distance)
 
         link_list.sort(key=lambda cell: cell[1])
-
-        next_chapter_raw = link_list[0][0]
+ 
+        next_chapter = link_list[0][0]
 
         i = 1
-        while (link_list[i][1] < 3):
-            if (book.website not in next_chapter_raw) and (("https://" or "http://") not in next_chapter_raw):
-                next_chapter = website_url + next_chapter_raw
-            elif book.website in next_chapter_raw:
-                next_chapter = "https://" + next_chapter_raw
+        for link in link_list:
+            if (book.website not in next_chapter) and (("https://" or "http://") not in next_chapter):
+                next_chapter = "https://" + website_url + next_chapter
+                print("Website & https not in url")
+            elif (("https://" or "http://") not in next_chapter):
+                next_chapter = "https://" + next_chapter
+                print("https not in url")
+
 
             is_previous_url = False
             for previous_url in previous_urls:
-                if next_chapter_raw == previous_url:
+                if next_chapter == previous_url:
                     is_previous_url = True
 
             if is_previous_url:
-                next_chapter = link_list[i][0]
-                i += 1
-
-                if link_list[i][1] >= 3:
-                    #Weird behaviour is here, as in cannot find next chapter link and previous & current are the same
-
-                    progressbar.close()
-                    print("Next chapter cannot be found!")
-                    print("Previous urls: ", previous_urls)
-                    print("Book url: ", book.url)
-                    print("Next chapter: ", next_chapter)
-                    while True:
-                        user_input = input("Write scraped pages to folder? (y/n): ")
-                        if user_input.lower() in ["n", "no"]:
-                            break
-                        elif user_input.lower() in ["y", "yes"]:
-                            book.save_to_file()
-                            break
-
-                    system("pause")
-                    exit(1)
-            else:
-                previous_urls.append(next_chapter_raw)
+                next_chapter = link[0]
+            elif "javascript" not in next_chapter:
+                previous_urls.append(next_chapter)
                 return next_chapter
+
+        progressbar.close()
+        print("Next chapter cannot be found!")
+        while True:
+            user_input = input("Write scraped pages to folder? (y/n): ")
+            if user_input.lower() in ["n", "no"]:
+                break
+            elif user_input.lower() in ["y", "yes"]:
+                book.save_to_file()
+                break
+
+        system("pause")
+        exit(1)
 
     def make_filename() -> str:
         """Generate a filename based on book.title_name and i_iterator (for sub chapters).
@@ -405,9 +397,7 @@ def main():
 
     print(f"BookSuck {version} is starting.\nRefer to associated README for more details.\n")
 
-    #book = Book(ask_input())
-
-    book = Book(("TEST", "https://www.lightnovelpub.com/novel/possessing-nothing-30091921/495-chapter-90", "www.lightnovelpub.com", "200", "no", "/home/ottok/test/", "yes"))
+    book = Book(ask_input())
 
     if "\\" in book.folder_path:
         directory_separator = "\\"
@@ -428,11 +418,23 @@ def main():
 
     #Website scraping & content manipulation loop
     while True:
+        global previous_chapter_txt
+
         page_content = BeautifulSoup(get_page_text(), "html.parser")
 
         book.title_name = get_title()
 
         book.page = get_book_text()
+
+        if book.page == previous_chapter_txt:
+            progressbar.close()
+            print("\nChapter text is the same as the previous!")
+            print("Check manually from the website if the next chapter link is working.")
+            print("If it isn't then continue the operation from the next chapter.")
+            system("pause")
+            exit(1)
+
+        chapter_number = get_chapter_number(book.url)
 
         filename = make_filename()
         book.set_page_info(filename)
