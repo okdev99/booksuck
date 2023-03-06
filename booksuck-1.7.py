@@ -88,6 +88,8 @@ def main():
             for i in list(range(len(self.book_pages))):
                 if self.chapter_file_name_based_on_book_name in ["y", "yes"]:
                     self.title_name = self.book_name
+                else:
+                    self.title_name = self.book_pages[i][2] # is a filename
 
                 #If book_txt is the same as previous chapter, do not copy to file
                 if self.book_pages[i][0][self.book_pages[i][0].find("\n\n"):] is not self.book_pages[i-1][0][self.book_pages[i-1][0].find("\n\n"):]:
@@ -394,14 +396,15 @@ def main():
         filename (str): filename based on title and i_iterator
         """
         if book.generate_folder in ["y", "yes"]:
-            file_name = book.book_name + directory_separator + book.title_name.replace("\n", "")
-        else:
-            file_name = book.title_name.replace("\n", "")
+            file_name = book.book_name + directory_separator
 
-        if is_title and (book.chapter_file_name_based_on_book_name in ["n", "no"]):
-            file_name = file_name + ".txt"
+        if book.chapter_file_name_based_on_book_name in ["n", "no"]:
+            file_name = file_name + book.title_name.replace("\n", "") + ".txt"
         else:
-            file_name = file_name + "-chapter-" + chapter_number + i_iterator + ".txt"
+            if is_title:
+                file_name = file_name+ book.book_name + "-chapter-" + chapter_number + i_iterator + ".txt"
+            else:
+                file_name = file_name + book.title_name.replace("\n", "") + ".txt"
 
         return file_name
 
@@ -431,7 +434,6 @@ def main():
 
     if book.generate_folder in ["y", "yes"]:
         make_folder()
-
 
     progressbar = tqdm(total=int(book.ending_chapter_number)+1-int(starting_chapter_number), desc="Scraping: ")
 
