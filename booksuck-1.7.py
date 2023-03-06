@@ -3,6 +3,11 @@
 
 #Copyright notice is at the end.
 
+#Cloudscraper is failing when the target site checks with cloudflare when the scraping has run for about 10-20 seconds.
+#The program will just scrape the "Just a moment..." cloudflare page and halt, since no link for the next page is found.
+#The program tells the last link it tried to scrape and you can resume from there, but it is cumbersome.
+#-> try to make cloudscraper work or consider an alternative
+
 from urllib.request import HTTPError
 from html import unescape
 from tqdm import tqdm
@@ -191,6 +196,9 @@ def main():
             
         if choices_right in ["y", "yes"]:
             return book_name, url, website, ending_chapter_number, chapter_file_name_based_on_book_name, folder_path, generate_folder
+        else:
+            system("pause")
+            exit(0)
 
     def get_chapter_number(url: str) -> str:
         """Finds and outputs starting chapter number from url.
@@ -340,42 +348,44 @@ def main():
             link_list[i] = (str(link_list[i].get("href")), levenshtein_distance)
 
         link_list.sort(key=lambda cell: cell[1])
- 
-        next_chapter = link_list[0][0]
+        
+        if (len(link_list) != 0):
+            next_chapter = link_list[0][0]
 
-        i = 1
-        for link in link_list:
-            if (book.website not in next_chapter) and (("https://" or "http://") not in next_chapter):
-                next_chapter = "https://" + website_url + next_chapter
-                print("Website & https not in url")
-            elif (("https://" or "http://") not in next_chapter):
-                next_chapter = "https://" + next_chapter
-                print("https not in url")
+            #Frankly, I don't get it why this needs to iterate over "link_list" and compare "next_chapter" and not "link"
+            i = 1
+            for link in link_list:
+                if (book.website not in next_chapter) and (("https://" or "http://") not in next_chapter):
+                    next_chapter = website_url + next_chapter
+                elif (("https://" or "http://") not in next_chapter):
+                    next_chapter = "https://" + next_chapter
 
 
-            is_previous_url = False
-            for previous_url in previous_urls:
-                if next_chapter == previous_url:
-                    is_previous_url = True
+                is_previous_url = False
+                for previous_url in previous_urls:
+                    if next_chapter == previous_url:
+                        is_previous_url = True
 
-            if is_previous_url:
-                next_chapter = link[0]
-            elif "javascript" not in next_chapter:
-                previous_urls.append(next_chapter)
-                return next_chapter
+                if is_previous_url:
+                    next_chapter = link[0]
+                elif "javascript" not in next_chapter:
+                    previous_urls.append(next_chapter)
+                    return next_chapter
 
         progressbar.close()
         print("Next chapter cannot be found!")
         while True:
             user_input = input("Write scraped pages to folder? (y/n): ")
             if user_input.lower() in ["n", "no"]:
+                print("Last url: " + book.url)
                 break
             elif user_input.lower() in ["y", "yes"]:
                 book.save_to_file()
+                print("Last url: " + book.url)
                 break
 
         system("pause")
-        exit(1)
+        exit(0)
 
     def make_filename() -> str:
         """Generate a filename based on book.title_name and i_iterator (for sub chapters).
@@ -395,6 +405,8 @@ def main():
 
         return file_name
 
+    print("BookSuck Copyright (C) 2022  Otto Kuusniemi\nThis program comes with ABSOLUTELY NO WARRANTY; for details refer to LICENSE.\nThis is free software, and you are welcome to redistribute it\nunder certain conditions; refer to LICENSE for details.\n")
+
     print(f"BookSuck {version} is starting.\nRefer to associated README for more details.\n")
 
     book = Book(ask_input())
@@ -408,7 +420,14 @@ def main():
 
     starting_chapter_number = get_chapter_number(book.url)
 
-    scraper = cloudscraper.create_scraper()
+    scraper = cloudscraper.create_scraper(
+        delay=10,
+        browser={
+            'browser': 'chrome',
+            'platform': 'android',
+            'desktop': False
+        }
+    )
 
     if book.generate_folder in ["y", "yes"]:
         make_folder()
@@ -453,6 +472,7 @@ def main():
     print(f"\nBookSuck {version}:")
     print(f"{book.book_name} has been succesfully downloaded.")
     system("pause")
+    exit(0)
 
 if __name__ == "__main__":
     main()
