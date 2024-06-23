@@ -3,28 +3,25 @@
 
 #Copyright notice is at the end.
 
-#Cloudscraper is failing when the target site checks with cloudflare when the scraping has run for about 10-20 seconds.
-#The program will just scrape the "Just a moment..." cloudflare page and halt, since no link for the next page is found.
-#The program tells the last link it tried to scrape and you can resume from there, but it is cumbersome.
-#-> try to make cloudscraper work or consider an alternative
-
 from urllib.request import HTTPError
 from html import unescape
 from tqdm import tqdm
-from os import mkdir, system
+from os import mkdir, system, path
 from bs4 import BeautifulSoup
+from time import sleep
+from random import uniform
 import cloudscraper, re, Levenshtein
 
 #These tags are removed from the text, but the text inside of them is saved.
-removed_tags = ["<em>", "</em>", "<strong>", "</strong>", "<hr>", "</hr>", "<span>", "</span>", "<table>", "</table>", "<caption>", "</caption>", "<tbody>", "</tbody>", "<td>", "</td>", "<tr>", "</tr>", "<i>", "</i>", "<b>", "</b>"]
+removed_tags = ["<em>", "</em>", "<strong>", "</strong>", "<hr>", "</hr>", "<span>", "</span>", "<table>", "</table>", "<caption>", "</caption>", "<tbody>", "</tbody>", "<td>", "</td>", "<tr>", "</tr>", "<i>", "</i>", "<b>", "</b>", "<sup>", "</sup>", "<p style=\"text-align: center\">"]
 
-forbidden_tags = ["<sub>", "</sub>", "<a href=\""]
+forbidden_tags = ["<sub>", "</sub>", "<a href=\"", "<img"]
 
 #If filename is based on title, these characters are removed from the filename.
 forbidden_chars = ["#", "%", "&", "{", "}", "/", "\\", "<", ">", "€", "$", "!", "?", "+", "@", "\"", "'", "´", "`", "*", ":", ";"]
 
 #This is a list of website where this program is known to work.
-working_websites = ["www.lightnovelpub.com", "www.readlightnovel.me"]
+working_websites = ["www.lightnovelpub.com", "www.lightnovelworld.com", "www.readlightnovel.me", "www.royalroad.com"]
 
 href = "href=\""
 
@@ -216,6 +213,61 @@ def main():
         #This returns function gets empty string for first run of the loop, so it returns somethin below 0 so it cannot loop into 0 1 chapters.
         if url == "":
             return "-1"
+
+        #Find the last slash "/" in the url
+        t = -2
+        last_slash = -1
+        while last_slash == -1:
+            last_slash = url.find("/", t, -2)
+            t -= 1
+
+        #Iterate forward and copy numbers until no more numbers show up
+        t = 1
+        chapter_number = ""
+        try:
+            while True:
+                if url[last_slash + t].isdigit():
+                    chapter_number = chapter_number + url[last_slash + t]
+                    t += 1
+                elif chapter_number == "":
+                    t += 1
+                else:
+                    break
+        except IndexError:
+            return "-1"
+
+        if chapter_number == previous_chapter:
+            i_iterator = "-" + str(i)
+            i += 1
+        else:
+            i = 1
+            i_iterator = ""
+            previous_chapter = chapter_number
+
+        return chapter_number
+
+
+
+        """
+        if website_url == "https://www.royalroad.com":
+            t = 1
+            chapter_number_start = url.find("chapter-") + len("chapter-")   
+            while True:
+                chapter_number = url[chapter_number_start:chapter_number_start+t]
+                try:
+                    if not url[chapter_number_start+1+t].isdigit():
+                        break
+                except IndexError:
+                    break
+                t += 1  
+            if chapter_number == previous_chapter:
+                i_iterator = "-" + str(i)
+                i += 1
+            else:
+                i = 1
+                i_iterator = ""
+                previous_chapter = chapter_number   
+            return chapter_number
         else:
             t = -1
             while True:
@@ -224,8 +276,7 @@ def main():
                     t -= 1
                 else:
                     t = -1
-                    break
-
+                    break   
             if url[last_line-1].isdigit() and url[last_line+1].isdigit():
                 while True:
                     second_last_line = url.find("-", last_line+t)
@@ -236,32 +287,35 @@ def main():
                         break
                 chapter_number = url[second_last_line+1:last_line]
             else:
-                chapter_number = url[last_line+1:]
+                chapter_number = url[last_line+1:]  
                 while True:
                     if chapter_number.isdigit():
                         break
                     else:
-                        chapter_number = chapter_number[:-1]
-
+                        chapter_number = chapter_number[:-1]    
             if chapter_number == previous_chapter:
                 i_iterator = "-" + str(i)
                 i += 1
             else:
                 i = 1
                 i_iterator = ""
-                previous_chapter = chapter_number
-
-
+                previous_chapter = chapter_number   
             return chapter_number
+        """
+
+
 
     def make_folder():
         """Generates a folder with the specified name book.book_name to the book.folder_path"""
         try:
-            mkdir(book.folder_path + book.book_name + directory_separator)
+            if not path.isdir(book.folder_path + book.book_name + directory_separator):
+                mkdir(book.folder_path + book.book_name + directory_separator)
+            else:
+                print("Folder already exists!\nSkipping generating folder.")
         except OSError as e:
+            print("\nError code: ", e)
             print(f"Could not create a folder as a: {book.folder_path + book.book_name + directory_separator}")
-            print("Error code: ", e)
-            print("Check if the program has read, write & execute permissions and the folder does not already exist.")
+            print("\nCheck if the program has read, write & execute permissions and the folder does not already exist.")
             system("pause")
             exit(1)
 
@@ -397,6 +451,8 @@ def main():
         """
         if book.generate_folder in ["y", "yes"]:
             file_name = book.book_name + directory_separator
+        else:
+            file_name = ""
 
         if book.chapter_file_name_based_on_book_name in ["n", "no"]:
             file_name = file_name + book.title_name.replace("\n", "") + ".txt"
@@ -467,6 +523,8 @@ def main():
         
         previous_chapter_txt = book.page
         book.url = find_next_chapter_link()
+
+        sleep(uniform(0.2, 4))
 
     progressbar.close()
     book.save_to_file()
