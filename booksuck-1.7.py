@@ -408,7 +408,7 @@ def main():
 
         return file_name
 
-    print("BookSuck Copyright (C) 2022  Otto Kuusniemi\nThis program comes with ABSOLUTELY NO WARRANTY; for details refer to LICENSE.\nThis is free software, and you are welcome to redistribute it\nunder certain conditions; refer to LICENSE for details.\n")
+    print("BookSuck Copyright (C) 2022-2024  Otto Kuusniemi\nThis program comes with ABSOLUTELY NO WARRANTY; for details refer to LICENSE.\nThis is free software, and you are welcome to redistribute it\nunder certain conditions; refer to LICENSE for details.\n")
 
     print(f"BookSuck {version} is starting.\nRefer to associated README for more details.\n")
 
@@ -484,7 +484,7 @@ if __name__ == "__main__":
 #    BookSuck is a program which looks at a inputted website url and downloads it's
 #    text inside html body tags, while removing <sub> tags text and just other tags. The downloaded text is saved
 #    according to user input.
-#    Copyright (C) 2022  Otto Kuusniemi
+#    Copyright (C) 2022-2024  Otto Kuusniemi
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
