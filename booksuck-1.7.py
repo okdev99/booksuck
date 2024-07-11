@@ -1,7 +1,40 @@
 #!/usr/bin/env python3
 #coding: utf-8
 
-#Copyright notice is at the end.
+#    --Start of copyright notice--
+
+#    BookSuck is a program which looks at a inputted website url and downloads it's
+#    text inside html body tags, while removing <sub> tags text and just other tags. The downloaded text is saved
+#    according to user input.
+#    Copyright (C) 2022-2024  Otto Kuusniemi
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+#    Developer contact
+#    Email: okdev99@gmail.com
+
+#    --End of copyright notice--
+
+
+
+#TODO:  - Remove the separate save_to_file loop and save the page to file as soon as you can to save memory.
+#       - Experiment on shorter sleep max wait time. Now on longer books the scraping can take hours.
+#       - Consider making several functions to work with input and not use global variables as much as possible.
+#       - Consider integrating some capthca solver into the code. See cloudscraper PyPi website for more information.
+#       - Add robots.txt parser
+
+
 
 from urllib.request import HTTPError
 from html import unescape
@@ -10,7 +43,10 @@ from os import mkdir, system, path
 from bs4 import BeautifulSoup
 from time import sleep
 from random import uniform
-import cloudscraper, re, Levenshtein
+from re import search
+from Levenshtein import distance
+import cloudscraper
+import urllib.robotparser
 
 #These tags are removed from the text, but the text inside of them is saved.
 removed_tags = ["<em>", "</em>", "<strong>", "</strong>", "<hr>", "</hr>", "<span>", "</span>", "<table>", "</table>", "<caption>", "</caption>", "<tbody>", "</tbody>", "<td>", "</td>", "<tr>", "</tr>", "<i>", "</i>", "<b>", "</b>", "<sup>", "</sup>", "<p style=\"text-align: center\">"]
@@ -25,7 +61,6 @@ working_websites = ["www.lightnovelpub.com", "www.lightnovelworld.com", "www.rea
 
 href = "href=\""
 
-previous_chapter_txt = ""
 previous_urls = []
 
 i = 1
@@ -303,8 +338,6 @@ def main():
             return chapter_number
         """
 
-
-
     def make_folder():
         """Generates a folder with the specified name book.book_name to the book.folder_path"""
         try:
@@ -400,7 +433,7 @@ def main():
 
         for i in list(range(len(link_list))):
             #Iterate links, and rate them on how much they differ to the current url and then pick the min points gotten
-            levenshtein_distance = Levenshtein.distance(str(link_list[i].get("href")), url)
+            levenshtein_distance = distance(str(link_list[i].get("href")), url)
             link_list[i] = (str(link_list[i].get("href")), levenshtein_distance)
 
         link_list.sort(key=lambda cell: cell[1])
@@ -464,6 +497,8 @@ def main():
 
         return file_name
 
+    robotparser = urllib.robotparser.RobotFileParser()
+
     print("BookSuck Copyright (C) 2022-2024  Otto Kuusniemi\nThis program comes with ABSOLUTELY NO WARRANTY; for details refer to LICENSE.\nThis is free software, and you are welcome to redistribute it\nunder certain conditions; refer to LICENSE for details.\n")
 
     print(f"BookSuck {version} is starting.\nRefer to associated README for more details.\n")
@@ -476,6 +511,16 @@ def main():
         directory_separator = "/"
 
     website_url = book.url[0:book.url.find("/", 10)]
+
+    robotparser.set_url(website_url+"/robots.txt")
+    robotparser.read()
+
+    request_rate = robotparser.request_rate("*") #request_rate is a tuple with (requests, seconds) which means how many requests can be done in how many seconds
+
+    crawl_delay = robotparser.crawl_delay("*")
+
+    if not crawl_delay.isdigit:
+        crawl_delay = 0.2
 
     starting_chapter_number = get_chapter_number(book.url)
 
@@ -493,9 +538,16 @@ def main():
 
     progressbar = tqdm(total=int(book.ending_chapter_number)+1-int(starting_chapter_number), desc="Scraping: ")
 
+    #TODO: implement request_rate into the code
     #Website scraping & content manipulation loop
     while True:
         global previous_chapter_txt
+        
+        if not robotparser.can_fetch("*", book.url):
+            progressbar.close()
+            print("Attention! Robots.txt has forbidden the url from bot access.")
+            system("pause")
+            exit(1)
 
         page_content = BeautifulSoup(get_page_text(), "html.parser")
 
@@ -516,7 +568,7 @@ def main():
         filename = make_filename()
         book.set_page_info(filename)
 
-        end_reached = re.search(("([^0-9]" + book.ending_chapter_number + "[^0-9])"), (book.url + "-"))
+        end_reached = search(("([^0-9]" + book.ending_chapter_number + "[^0-9])"), (book.url + "-"))
 
         if end_reached:
             break
@@ -524,7 +576,7 @@ def main():
         previous_chapter_txt = book.page
         book.url = find_next_chapter_link()
 
-        sleep(uniform(0.2, 4))
+        sleep(uniform(crawl_delay, crawl_delay+2))
 
     progressbar.close()
     book.save_to_file()
@@ -536,28 +588,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-#    --Start of copyright notice--
-
-#    BookSuck is a program which looks at a inputted website url and downloads it's
-#    text inside html body tags, while removing <sub> tags text and just other tags. The downloaded text is saved
-#    according to user input.
-#    Copyright (C) 2022-2024  Otto Kuusniemi
-#
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    (at your option) any later version.
-
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
-
-#    You should have received a copy of the GNU General Public License
-#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-#    Developer contact
-#    Email: okdev99@gmail.com
-
-#    --End of copyright notice--
