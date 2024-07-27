@@ -47,6 +47,7 @@ from re import search
 from Levenshtein import distance
 import cloudscraper
 import urllib.robotparser
+import requests
 
 #These tags are removed from the text, but the text inside of them is saved.
 removed_tags = ["<em>", "</em>", "<strong>", "</strong>", "<hr>", "</hr>", "<span>", "</span>", "<table>", "</table>", "<caption>", "</caption>", "<tbody>", "</tbody>", "<td>", "</td>", "<tr>", "</tr>", "<i>", "</i>", "<b>", "</b>", "<sup>", "</sup>", "<p style=\"text-align: center\">"]
@@ -499,6 +500,15 @@ def main():
 
     robotparser = urllib.robotparser.RobotFileParser()
 
+    scraper = cloudscraper.create_scraper(
+    delay=10,
+    browser={
+        'browser': 'chrome',
+        'platform': 'android',
+        'desktop': False
+        }
+    )
+
     print("BookSuck Copyright (C) 2022-2024  Otto Kuusniemi\nThis program comes with ABSOLUTELY NO WARRANTY; for details refer to LICENSE.\nThis is free software, and you are welcome to redistribute it\nunder certain conditions; refer to LICENSE for details.\n")
 
     print(f"BookSuck {version} is starting.\nRefer to associated README for more details.\n")
@@ -512,37 +522,38 @@ def main():
 
     website_url = book.url[0:book.url.find("/", 10)]
 
-    robotparser.set_url(website_url+"/robots.txt")
-    robotparser.read()
+    try:
+        robots_response = scraper.get(website_url+"/robots.txt").text
+    except (HTTPError, ConnectionError) as e:
+        progressbar.close()
+        print("\nTrying to reach the website returned an error!")
+        print(f"Website: {website_url}/robots.txt")
+        print("Error: ", e)
+        system("pause")
+        exit(1)
 
-    request_rate = robotparser.request_rate("*") #request_rate is a tuple with (requests, seconds) which means how many requests can be done in how many seconds
+    robotparser.parse(robots_response.splitlines())
+
+    #request_rate is a tuple with (requests, seconds) which means how many requests can be done in how many seconds
+    request_rate = robotparser.request_rate("*")
 
     crawl_delay = robotparser.crawl_delay("*")
 
-    if not crawl_delay.isdigit:
+    if crawl_delay is None:
         crawl_delay = 0.2
 
     starting_chapter_number = get_chapter_number(book.url)
-
-    scraper = cloudscraper.create_scraper(
-        delay=10,
-        browser={
-            'browser': 'chrome',
-            'platform': 'android',
-            'desktop': False
-        }
-    )
 
     if book.generate_folder in ["y", "yes"]:
         make_folder()
 
     progressbar = tqdm(total=int(book.ending_chapter_number)+1-int(starting_chapter_number), desc="Scraping: ")
 
-    #TODO: implement request_rate into the code
+    #TODO: implement request_rate into the code, this would need a time check and perhaps a permanent last_checked.txt file.
     #Website scraping & content manipulation loop
     while True:
         global previous_chapter_txt
-        
+
         if not robotparser.can_fetch("*", book.url):
             progressbar.close()
             print("Attention! Robots.txt has forbidden the url from bot access.")
