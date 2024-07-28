@@ -26,7 +26,7 @@
 
 #    --End of copyright notice--
 
-
+#Attention! Scraping with the book name as filename does not work. Scrape loop seems to work, but it only saves handful of random pages.
 
 #TODO:  - Remove the separate save_to_file loop and save the page to file as soon as you can to save memory.
 #       - Experiment on shorter sleep max wait time. Now on longer books the scraping can take hours.
@@ -71,7 +71,7 @@ previous_chapter = ""
 previous_chapter_txt = ""
 is_title = None
 
-version = "1.7"
+version = "1.8"
 
 def main():
     class Book:

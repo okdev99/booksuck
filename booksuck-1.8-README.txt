@@ -35,6 +35,9 @@ Email: okdev99@gmail.com
 
 
 ---Changelog---
+BookSuck 1.8 (28.07.2024)
+- Added robots.txt parser and checker
+
 BookSuck 1.7 (10.10.2022)
 - Programs operation was made to use functions
 - Documentation is added to help understand the code and functions
